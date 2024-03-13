@@ -3,7 +3,7 @@
   "name": "Punch Time Reader",
   "version": "1.0",
   "description": "Reads and displays the earliest and latest punch times from a specific webpage",
-  "permissions": ["activeTab", "downloads"],
+  "permissions": ["activeTab", "downloads", "storage"],
   "background": {
     "scripts": ["background.js"],
     "persistent": false

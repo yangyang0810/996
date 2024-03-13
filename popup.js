@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
   var checkTimeButton = document.getElementById("checkTimeButton");
   var timeDisplay = document.getElementById("timeDisplay"); // 获取显示时间的元素
   var triggerButton = document.getElementById("triggerButton");
+  var fillTimeButton = document.getElementById("fillTimeButton");
 
   if (checkTimeButton) {
     checkTimeButton.addEventListener("click", function () {
@@ -47,6 +48,13 @@ document.addEventListener("DOMContentLoaded", function () {
     triggerButton.addEventListener("click", function () {
       chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         chrome.tabs.sendMessage(tabs[0].id, { action: "triggerWebpageButton" });
+      });
+    });
+  }
+  if (fillTimeButton) {
+    fillTimeButton.addEventListener("click", function () {
+      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "fillTimeCells" });
       });
     });
   }
