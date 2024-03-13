@@ -1,26 +1,20 @@
 {
-   "manifest_version": 2,
-   "name": "Punch Time Reader",
-   "version": "1.0",
-   "description": "Reads and displays the earliest and latest punch times from a specific webpage",
-   "permissions": [
-      "activeTab",
-      "downloads"
+  "manifest_version": 2,
+  "name": "Punch Time Reader",
+  "version": "1.0",
+  "description": "Reads and displays the earliest and latest punch times from a specific webpage",
+  "permissions": ["activeTab", "downloads"],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
   ],
-   "background": {
-     "scripts": ["background.js"],
-     "persistent": false
-   },
-   "content_scripts": [
-     {
-       "matches": ["<all_urls>"], 
-       "js": ["content.js"]
-     }
-   ],
-   "browser_action": {
-     "default_popup": "popup.html"
-     }
-   }
-
- 
- 
+  "browser_action": {
+    "default_popup": "popup.html"
+  }
+}
