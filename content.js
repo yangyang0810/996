@@ -74,11 +74,21 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 function triggerWebpageButton() {
   chrome.storage.local.get("punchTimes", function (data) {
     if (data.punchTimes) {
-      let punchTimesArray = data.punchTimes.split("\n"); // 假设打卡时间以换行符分隔
-      let triggerCount = punchTimesArray.length - 1;
+      let punchTimesArray = data.punchTimes.split("\n");
+      let triggerCount = 0;
 
-      for (let i = 0; i < triggerCount; i++) {
-        // 触发网页上的按钮
+      for (let i = 0; i < punchTimesArray.length; i++) {
+        let timeEntries = punchTimesArray[i].split(/\s+/); // 使用空格分割字符串
+        if (timeEntries.length > 3) {
+          let endTime = timeEntries[3];
+          if (endTime.localeCompare("19:00") > 0) {
+            // 检查是否晚于19:00
+            triggerCount++;
+          }
+        }
+      }
+
+      for (let i = 0; i < triggerCount--; i++) {
         let button = document.querySelector(
           ".weapp-form-detail-table__action-btn"
         );
@@ -88,7 +98,6 @@ function triggerWebpageButton() {
       }
     } else {
       for (let i = 0; i < 3; i++) {
-        // 触发网页上的按钮
         let button = document.querySelector(
           ".weapp-form-detail-table__action-btn"
         );
@@ -111,122 +120,172 @@ function triggerConfirmButton() {
     confirmButton.click();
   }
 }
-// function fillTimeCells() {
-//   chrome.storage.local.get("punchTimes", function (data) {
-//     if (data.punchTimes) {
-//       let punchTimesArray = data.punchTimes.split("\n");
-//       let cells = document.querySelectorAll(
-//         ".ui-input.ui-date-time-picker-rangeWrap-input"
-//       );
 
-//       punchTimesArray.forEach((timeEntry, index) => {
-//         let times = timeEntry.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/g) || [];
-//         if (times.length === 2) {
-//           if (cells[index * 2]) {
-//             cells[index * 2].setAttribute("value", times[0]); // 设置最早时间的value属性
-//           }
-//           if (cells[index * 2 + 1]) {
-//             cells[index * 2 + 1].setAttribute("value", times[1]); // 设置最晚时间的value属性
-//           }
-//         }
-//       });
-//     }
-//   });
-//   triggerConfirmButton();
-// }
-
-function findNextInput(element) {
-  let num = 0;
-  while (element != null) {
-    num++;
-    if (element.tagName === "INPUT" && num == 2) {
-      return element;
+function findNextInput(startElement) {
+  var currentElement = startElement;
+  // 遍历DOM节点，寻找下一个input元素
+  while ((currentElement = currentElement.nextElementSibling)) {
+    if (currentElement.tagName === "INPUT") {
+      return currentElement;
     }
-    if (element.firstElementChild) {
-      let found = findNextInput(element.firstElementChild);
+    // 如果当前节点有子节点，深入检查子节点
+    if (currentElement.firstElementChild) {
+      var found = findNextInput(currentElement.firstElementChild);
       if (found) return found;
     }
-    element = element.nextElementSibling;
   }
   return null;
 }
 function fillTimeCells() {
-  chrome.storage.local.get("punchTimes", function (data) {
-    if (data.punchTimes) {
-      let punchTimesArray = data.punchTimes.split("\n");
-      let cells = document.querySelectorAll(
+  try {
+    chrome.storage.local.get("punchTimes", function (data) {
+      if (!data.punchTimes) {
+        console.log("No punch times data available.");
+        return;
+      }
+
+      const punchTimesArray = data.punchTimes.split("\n");
+      const cells = document.querySelectorAll(
         ".ui-input.ui-date-time-picker-rangeWrap-input"
       );
-      punchTimesArray.forEach((timeEntry, index) => {
-        let [startDate, startTime, endDate, endTime] = timeEntry.split(" ");
+      let fillIndex = 0; // 用于跟踪实际填充的序号
+
+      punchTimesArray.forEach((timeEntry) => {
+        // Split the string into two parts - earliest and latest
+        let [earliest, latest] = timeEntry.split("最晚：");
+
+        // Remove the '最早：' part from the earliest string
+        earliest = earliest.replace("最早：", "").trim();
+
+        // Split the earliest and latest parts to get date and time separately
+        let [startDate, startTime] = earliest.split(" ");
+        let [endDate, fullEndTime] = latest.split(" ");
+        let [endHours, endMinutes] = fullEndTime.split(":");
+
+        // 只保留小时和分钟
+        let endTime = `${endHours}:${endMinutes}`;
+
+        // 转换小时为数字并比较
+        if (parseInt(endHours) < 19) {
+          console.log(
+            `Skipping entry with end time before 19:00: ${timeEntry}`
+          );
+          return; // 跳过本次循环
+        }
+
         let times = timeEntry.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/g) || [];
         let matches = timeEntry.match(/\d{4}-\d{2}-\d{2}/g);
         if (times.length === 2) {
-          // 创建一个新的点击事件
-          var event = new MouseEvent("click", {
-            view: window,
-            bubbles: true,
-            cancelable: true,
-          });
-
-          if (cells[index * 2]) {
-            cells[index * 2].setAttribute("value", times[0]); // 设置最早时间的value属性
-          }
-          if (cells[index * 2 + 1]) {
-            cells[index * 2 + 1].setAttribute("value", times[1]); // 设置最晚时间的value属性
-          }
-          // 派发点击事件
-
-          cells[index * 2].dispatchEvent(event);
-          let DateInputs = document.querySelectorAll(".ui-input.dateInput");
-          if (DateInputs[index * 2]) {
-            DateInputs[index * 2].setAttribute("value", matches[0]); // 设置最早时间的value属性
-            DateInputs[index * 2 + 1].setAttribute("value", matches[1]);
-          }
-          var TimeInputs = document.querySelectorAll(
-            'input[placeholder="选择时间"]'
+          processTimeEntry(
+            cells,
+            fillIndex,
+            times,
+            matches,
+            endTime,
+            startTime
           );
-          let timeInput = findNextInput(DateInputs[index * 2].parentNode);
-          timeInput.setAttribute("value", startTime);
-          timeInput = findNextInput(DateInputs[index * 2 + 1].parentNode);
-          timeInput.setAttribute("value", endTime);
-
-          cells[index * 2 + 1].dispatchEvent(event);
-
-          let confirmButton = document.querySelectorAll(".item.confirm");
-          if (confirmButton[index]) {
-            confirmButton[index].click();
-          }
         }
+        fillIndex++;
       });
-    }
-  });
-  //   chrome.storage.local.get("punchTimes", function (data) {
-  //     if (data.punchTimes) {
-  //       let punchTimesArray = data.punchTimes.split("\n");
-  //       let startDateInputs = document.querySelectorAll(".ui-input.dateInput");
-  //       let startTimeInputs = document.querySelectorAll(
-  //         ".ui-time-picker-wrap.ui-input[start-time]"
-  //       );
-  //       let endDateInputs = document.querySelectorAll(
-  //         ".ui-input.dateInput[end-date]"
-  //       );
-  //       let endTimeInputs = document.querySelectorAll(
-  //         ".ui-time-picker-wrap .ui-input[end-time]"
-  //       );
+    });
+  } catch (error) {
+    console.error("An error occurred while processing punch times:", error);
+  }
+}
 
-  //       punchTimesArray.forEach((timeEntry, index) => {
-  //         let [startDate, startTime, endDate, endTime] = timeEntry.split(" ");
-  //         if (startDateInputs[index] && startTimeInputs[index]) {
-  //           startDateInputs[index].value = startDate; // 填充开始日期部分
-  //           startTimeInputs[index].value = startTime; // 填充开始时间部分
-  //         }
-  //         if (endDateInputs[index] && endTimeInputs[index]) {
-  //           endDateInputs[index].value = endDate; // 填充结束日期部分
-  //           endTimeInputs[index].value = endTime; // 填充结束时间部分
-  //         }
-  //       });
-  //     }
-  //   });
-  triggerConfirmButton();
+function processTimeEntry(
+  cells,
+  fillIndex,
+  times,
+  matches,
+  endTime,
+  startTime
+) {
+  const event = new MouseEvent("click", {
+    view: window,
+    bubbles: true,
+    cancelable: true,
+  });
+
+  if (cells[fillIndex * 2]) {
+    cells[fillIndex * 2].setAttribute("value", times[0]); // 设置最早时间的value属性
+  }
+  if (cells[fillIndex * 2 + 1]) {
+    cells[fillIndex * 2 + 1].setAttribute("value", times[1]); // 设置最晚时间的value属性
+  }
+  cells[fillIndex * 2].dispatchEvent(event);
+
+  const dateInputs = document.querySelectorAll(".ui-input.dateInput");
+  if (dateInputs[fillIndex * 2]) {
+    dateInputs[fillIndex * 2].setAttribute("value", matches[0]);
+    dateInputs[fillIndex * 2 + 1].setAttribute("value", matches[1]);
+  }
+
+  setTimeout(() => {
+    safelyFocusAndDispatch(
+      cells,
+      dateInputs,
+      fillIndex,
+      event,
+      endTime,
+      startTime
+    );
+  }, 1000 * (fillIndex + 1));
+}
+
+function safelyFocusAndDispatch(
+  cells,
+  dateInputs,
+  fillIndex,
+  event,
+  endTime,
+  startTime
+) {
+  try {
+    let timeInput = document.querySelectorAll('input[placeholder="选择时间"]');
+    // timeInput[fillIndex * 2].setAttribute("value", startTime);
+    // timeInput[fillIndex * 2 + 1].setAttribute("value", endTime);
+    // 检查并聚焦第一个时间输入
+    if (timeInput[fillIndex * 2 + 1]) {
+      cells[fillIndex * 2 + 1].dispatchEvent(event);
+      timeInput[fillIndex * 2 + 1].dispatchEvent(event);
+    } else {
+      console.log("First time input not found");
+    }
+
+    // 等待 2 秒后执行第二个时间输入
+    setTimeout(() => {
+      if (timeInput[fillIndex * 2]) {
+        cells[fillIndex * 2].dispatchEvent(event);
+        timeInput[fillIndex * 2].dispatchEvent(event);
+      } else {
+        console.log("Second time input not found");
+      }
+
+      // 再等待 2 秒后点击确认按钮
+      setTimeout(() => {
+        let confirmButton = document.querySelectorAll(".item.confirm");
+        if (confirmButton[fillIndex]) {
+          confirmButton[fillIndex].click();
+        } else {
+          console.log("Confirm button not found");
+        }
+        let timeconfirmButton = document.querySelectorAll(
+          "ui-btn.ui-btn-link.ui-btn-middle.ui-btn-inline.confirm isValid"
+        );
+        if (confirmButton[fillIndex * 2]) {
+          timeconfirmButton[fillIndex * 2].click();
+        } else {
+          console.log("Confirm button not found");
+        }
+        if (confirmButton[fillIndex * 2 + 1]) {
+          timeconfirmButton[fillIndex * 2 + 1].click();
+        } else {
+          console.log("Confirm button not found");
+        }
+      }, 500);
+    }, 5000);
+  } catch (error) {
+    console.error("An error occurred in safelyFocusAndDispatch:", error);
+  }
 }
