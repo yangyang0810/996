@@ -88,7 +88,7 @@ function triggerWebpageButton() {
         }
       }
 
-      for (let i = 0; i < triggerCount--; i++) {
+      for (let i = 0; i < --triggerCount; i++) {
         let button = document.querySelector(
           ".weapp-form-detail-table__action-btn"
         );
@@ -138,56 +138,61 @@ function findNextInput(startElement) {
 }
 function fillTimeCells() {
   try {
-    chrome.storage.local.get("punchTimes", function (data) {
-      if (!data.punchTimes) {
-        console.log("No punch times data available.");
-        return;
-      }
+    triggerWebpageButton(); // 先触发 triggerWebpageButton 函数
 
-      const punchTimesArray = data.punchTimes.split("\n");
-      const cells = document.querySelectorAll(
-        ".ui-input.ui-date-time-picker-rangeWrap-input"
-      );
-      let fillIndex = 0; // 用于跟踪实际填充的序号
-
-      punchTimesArray.forEach((timeEntry) => {
-        // Split the string into two parts - earliest and latest
-        let [earliest, latest] = timeEntry.split("最晚：");
-
-        // Remove the '最早：' part from the earliest string
-        earliest = earliest.replace("最早：", "").trim();
-
-        // Split the earliest and latest parts to get date and time separately
-        let [startDate, startTime] = earliest.split(" ");
-        let [endDate, fullEndTime] = latest.split(" ");
-        let [endHours, endMinutes] = fullEndTime.split(":");
-
-        // 只保留小时和分钟
-        let endTime = `${endHours}:${endMinutes}`;
-
-        // 转换小时为数字并比较
-        if (parseInt(endHours) < 19) {
-          console.log(
-            `Skipping entry with end time before 19:00: ${timeEntry}`
-          );
-          return; // 跳过本次循环
+    // 设置一个 2 秒的延时，然后继续执行填充时间的逻辑
+    setTimeout(() => {
+      chrome.storage.local.get("punchTimes", function (data) {
+        if (!data.punchTimes) {
+          console.log("No punch times data available.");
+          return;
         }
 
-        let times = timeEntry.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/g) || [];
-        let matches = timeEntry.match(/\d{4}-\d{2}-\d{2}/g);
-        if (times.length === 2) {
-          processTimeEntry(
-            cells,
-            fillIndex,
-            times,
-            matches,
-            endTime,
-            startTime
-          );
-        }
-        fillIndex++;
+        const punchTimesArray = data.punchTimes.split("\n");
+        const cells = document.querySelectorAll(
+          ".ui-input.ui-date-time-picker-rangeWrap-input"
+        );
+        let fillIndex = 0; // 用于跟踪实际填充的序号
+
+        punchTimesArray.forEach((timeEntry) => {
+          // Split the string into two parts - earliest and latest
+          let [earliest, latest] = timeEntry.split("最晚：");
+
+          // Remove the '最早：' part from the earliest string
+          earliest = earliest.replace("最早：", "").trim();
+
+          // Split the earliest and latest parts to get date and time separately
+          let [startDate, startTime] = earliest.split(" ");
+          let [endDate, fullEndTime] = latest.split(" ");
+          let [endHours, endMinutes] = fullEndTime.split(":");
+
+          // 只保留小时和分钟
+          let endTime = `${endHours}:${endMinutes}`;
+
+          // 转换小时为数字并比较
+          if (parseInt(endHours) < 19) {
+            console.log(
+              `Skipping entry with end time before 19:00: ${timeEntry}`
+            );
+            return; // 跳过本次循环
+          }
+
+          let times = timeEntry.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/g) || [];
+          let matches = timeEntry.match(/\d{4}-\d{2}-\d{2}/g);
+          if (times.length === 2) {
+            processTimeEntry(
+              cells,
+              fillIndex,
+              times,
+              matches,
+              endTime,
+              startTime
+            );
+          }
+          fillIndex++;
+        });
       });
-    });
+    }, 2000); // 等待 2 秒后执行
   } catch (error) {
     console.error("An error occurred while processing punch times:", error);
   }

@@ -23,6 +23,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
             if (response && response.data) {
               timeDisplay.innerHTML = response.data; // 显示时间数据
+              let punchTimes = response.data; // 获取到的打卡时间
+
+              // 保存打卡时间到存储中
+              chrome.storage.local.set({ punchTimes: punchTimes }, function () {
+                console.log("打卡时间已保存");
+              });
             } else {
               timeDisplay.textContent = "没找到打卡时间。"; // 没有找到时间时的显示
             }
