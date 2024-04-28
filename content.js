@@ -9,7 +9,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "getPunchTimes") {
     // 使用 setTimeout 模拟异步获取考勤时间的过程
     setTimeout(function () {
-      var punchTimes = extractAndProcessPunchTimes(); // 提取并处理考勤时间
+      var punchTimes = extractAndProcessPunchTimes("ehr"); // 提取并处理考勤时间
       sendResponse({ data: punchTimes }); // 异步发送处理后的考勤时间数据
     }, 0);
 
@@ -25,34 +25,66 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
  *
  * @returns {Object} 格式化后的每天考勤时间对象，键为日期，值为包含最早和最晚考勤时间的对象。
  */
-function extractAndProcessPunchTimes() {
-  // 选择页面中所有的时间元素
-  let timeElements = document.querySelectorAll("span.unit");
+function extractAndProcessPunchTimes(identifier) {
   let dailyTimes = {};
+  if (identifier == "ehr") {
+    // 选择页面中所有的时间元素
+    let timeElements = document.querySelectorAll("span.unit");
 
-  // 遍历每个时间元素，提取日期和时间，并计算每天的最早和最晚考勤时间
-  timeElements.forEach((element) => {
-    let dateTime = element.textContent.trim();
-    let [date, time] = dateTime.split(" ");
+    // 遍历每个时间元素，提取日期和时间，并计算每天的最早和最晚考勤时间
+    timeElements.forEach((element) => {
+      let dateTime = element.textContent.trim();
+      let [date, time] = dateTime.split(" ");
 
-    // 计算时间的最早形式（例如，将"13:30"转换为"13:30:00"）
-    let earliestTime = calculateEarliestTime(time);
+      // 计算时间的最早形式（例如，将"13:30"转换为"13:30:00"）
+      let earliestTime = calculateEarliestTime(time);
 
-    // 如果当天考勤信息尚未初始化，则以当前时间为最早和最晚时间开始记录
-    if (!dailyTimes[date]) {
-      dailyTimes[date] = { earliest: earliestTime, latest: time };
-    } else {
-      // 如果当前时间早于已记录的最早时间，则更新最早时间
-      if (time < dailyTimes[date].earliest) {
-        dailyTimes[date].earliest = earliestTime;
+      // 如果当天考勤信息尚未初始化，则以当前时间为最早和最晚时间开始记录
+      if (!dailyTimes[date]) {
+        dailyTimes[date] = { earliest: earliestTime, latest: time };
+      } else {
+        // 如果当前时间早于已记录的最早时间，则更新最早时间
+        if (time < dailyTimes[date].earliest) {
+          dailyTimes[date].earliest = earliestTime;
+        }
+        // 如果当前时间晚于已记录的最晚时间，则更新最晚时间
+        if (time > dailyTimes[date].latest) {
+          dailyTimes[date].latest = time;
+        }
       }
-      // 如果当前时间晚于已记录的最晚时间，则更新最晚时间
-      if (time > dailyTimes[date].latest) {
-        dailyTimes[date].latest = time;
-      }
-    }
-  });
+    });
+  }
+  if (identifier == "eteam") {
+    // 选择页面中所有的时间元素
+    let timeElements = document.querySelectorAll("ul.content3");
+    // 获取包含日期的所有span元素
+    let timeElemen111t = document.querySelector(
+      ".fl.content3 > li:nth-child(2) > span:first-child"
+    );
 
+    // 遍历每个时间元素，提取日期和时间，并计算每天的最早和最晚考勤时间
+    timeElements.forEach((element) => {
+      let dateTime = element.textContent.trim();
+      let [date, time] = dateTime.split(" ");
+
+      // 格式化时间，确保时间格式统一
+      let formattedTime = calculateEarliestTime(time);
+
+      // 如果当天考勤信息尚未初始化，则以当前时间为最早和最晚时间开始记录
+      if (!dailyTimes[date]) {
+        dailyTimes[date] = { earliest: formattedTime, latest: formattedTime };
+      } else {
+        // 如果当前时间早于已记录的最早时间，则更新最早时间
+        if (formattedTime < dailyTimes[date].earliest) {
+          dailyTimes[date].earliest = formattedTime;
+        }
+        // 如果当前时间晚于已记录的最晚时间，则更新最晚时间
+        if (formattedTime > dailyTimes[date].latest) {
+          dailyTimes[date].latest = formattedTime;
+        }
+      }
+    });
+  }
   // 格式化每天的考勤时间，并返回结果
   return formatPunchTimes(dailyTimes);
 }
@@ -370,3 +402,16 @@ function safelyFocusAndDispatch(
     console.error("An error occurred in safelyFocusAndDispatch:", error);
   }
 }
+
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+  if (request.action === "handleinqbuttonClick") {
+    // 使用 setTimeout 模拟异步获取考勤时间的过程
+    setTimeout(function () {
+      var punchTimes = extractAndProcessPunchTimes("eteam"); // 提取并处理考勤时间
+      sendResponse({ data: punchTimes }); // 异步发送处理后的考勤时间数据
+    }, 0);
+
+    return true; // 表明响应将异步发送
+  }
+  return false; // 如果不处理该消息，则不需要返回 true
+});

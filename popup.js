@@ -1,7 +1,7 @@
 // popup.js
 
 document.addEventListener("DOMContentLoaded", function () {
-  var saveButton = document.getElementById("saveButton");
+  var inqbutton = document.getElementById("inqbutton");
   var checkTimeButton = document.getElementById("checkTimeButton");
   var timeDisplay = document.getElementById("timeDisplay"); // 获取显示时间的元素
   var triggerButton = document.getElementById("triggerButton");
@@ -38,15 +38,11 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  if (saveButton) {
-    saveButton.addEventListener("click", function () {
-      // 将打卡时间保存到扩展的存储中
-      chrome.storage.local.set(
-        { punchTimes: timeDisplay.textContent },
-        function () {
-          console.log("打卡时间已保存");
-        }
-      );
+  if (inqbutton) {
+    inqbutton.addEventListener("click", function () {
+      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "handleinqbuttonClick" });
+      });
     });
   }
 
