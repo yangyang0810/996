@@ -55,32 +55,32 @@ function extractAndProcessPunchTimes(identifier) {
     });
   }
   if (identifier == "eteam") {
+    let frmMain = document.getElementById("frmMain");
+    const iframeDoc = frmMain.contentDocument || frmMain.contentWindow.document;
     // 选择页面中所有的时间元素
-    let timeElements = document.querySelectorAll("ul.content3");
-    // 获取包含日期的所有span元素
-    let timeElemen111t = document.querySelector(
-      ".fl.content3 > li:nth-child(2) > span:first-child"
-    );
+    let timeElements = iframeDoc.querySelectorAll("ul.content3");
 
     // 遍历每个时间元素，提取日期和时间，并计算每天的最早和最晚考勤时间
     timeElements.forEach((element) => {
       let dateTime = element.textContent.trim();
-      let [date, time] = dateTime.split(" ");
+      // 使用正则表达式替换掉"打卡日期"和"打卡时间"以及它们之间的空格
+      let cleanedRecord = dateTime.replace(/打卡日期\s+|打卡时间\B/g, " ");
+      let [date, time] = cleanedRecord.split(" ");
 
       // 格式化时间，确保时间格式统一
-      let formattedTime = calculateEarliestTime(time);
+      let earliestTime = calculateEarliestTime(time);
 
       // 如果当天考勤信息尚未初始化，则以当前时间为最早和最晚时间开始记录
       if (!dailyTimes[date]) {
-        dailyTimes[date] = { earliest: formattedTime, latest: formattedTime };
+        dailyTimes[date] = { earliest: earliestTime, latest: time };
       } else {
         // 如果当前时间早于已记录的最早时间，则更新最早时间
-        if (formattedTime < dailyTimes[date].earliest) {
-          dailyTimes[date].earliest = formattedTime;
+        if (time < dailyTimes[date].earliest) {
+          dailyTimes[date].earliest = earliestTime;
         }
         // 如果当前时间晚于已记录的最晚时间，则更新最晚时间
-        if (formattedTime > dailyTimes[date].latest) {
-          dailyTimes[date].latest = formattedTime;
+        if (time > dailyTimes[date].latest) {
+          dailyTimes[date].latest = time;
         }
       }
     });
