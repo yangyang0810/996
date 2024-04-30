@@ -317,6 +317,21 @@ function fillTimeCells() {
     }
   });
 }
+// 辅助函数，用于安全地设置值并分派点击事件
+function safeSetAttributeAndDispatch(element, value, eventType) {
+  if (element) {
+    element.setAttribute("value", value);
+    const event = new MouseEvent(eventType, {
+      view: window,
+      bubbles: true,
+      cancelable: true,
+    });
+    element.dispatchEvent(event);
+  } else {
+    console.error(`Element not found for value: ${value}`);
+  }
+}
+
 function processTimeEntry(
   cells,
   fillIndex,
@@ -325,23 +340,21 @@ function processTimeEntry(
   endTime,
   startTime
 ) {
-  const event = new MouseEvent("click", {
-    view: window,
-    bubbles: true,
-    cancelable: true,
-  });
-
+  // 为最早和最晚时间创建点击事件并设置值
+  const clickEvent = "click";
   if (cells[fillIndex * 2]) {
-    cells[fillIndex * 2].setAttribute("value", times[0]); // 设置最早时间的value属性
+    safeSetAttributeAndDispatch(cells[fillIndex * 2], times[0], clickEvent);
   }
   if (cells[fillIndex * 2 + 1]) {
-    cells[fillIndex * 2 + 1].setAttribute("value", times[1]); // 设置最晚时间的value属性
+    safeSetAttributeAndDispatch(cells[fillIndex * 2 + 1], times[1], clickEvent);
   }
-  cells[fillIndex * 2].dispatchEvent(event);
 
+  // 为日期输入框设置值
   const dateInputs = document.querySelectorAll(".ui-input.dateInput");
   if (dateInputs[fillIndex * 2]) {
     dateInputs[fillIndex * 2].setAttribute("value", matches[0]);
+  }
+  if (dateInputs[fillIndex * 2 + 1]) {
     dateInputs[fillIndex * 2 + 1].setAttribute("value", matches[1]);
   }
 }

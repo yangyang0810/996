@@ -14,14 +14,48 @@
         white-space: pre-line; /* 保留原格式，比如换行等 */
       }
     </style>
+    <style>
+      .colorful-heading {
+        font-family: "Open Sans", Arial, sans-serif;
+        color: #ff6b6b; /* 活泼的橙色 */
+        font-weight: bold; /* 加粗字体 */
+        font-size: 24px; /* 较大的字体大小 */
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); /* 添加文字阴影效果 */
+      }
+
+      .container {
+        display: flex;
+        justify-content: left; /* 使内容居中 */
+      }
+      button {
+        margin: 10px; /* 添加一些间距 */
+      }
+      .signature {
+        position: absolute; /* 绝对定位 */
+        bottom: 10px; /* 距离底部10px */
+        right: 10px; /* 距离右侧10px */
+        font-size: 14px; /* 签名的字体大小 */
+        color: #999; /* 较淡的颜色，显得像署名 */
+        font-style: italic; /* 斜体，增加签名的感觉 */
+      }
+    </style>
   </head>
+
   <body>
-    <h1>打卡时间查看器</h1>
-    <button id="checkTimeButton">从ehr查看打卡时间</button>
+    <h1 class="colorful-heading">牛马小助手</h1>
+    <div class="container">
+      <button id="checkTimeButton">从Ehr查看打卡时间</button>
+    </div>
+    <div class="container">
+      <button id="inqbutton">在Eteam查看打卡时间</button>
+    </div>
+    <!-- <div><button id="triggerButton">新建行</button></div> -->
+    <div class="container">
+      <button id="fillTimeButton">填写加班数据</button>
+    </div>
     <div id="timeDisplay"></div>
+    <p class="signature">---本周你拉磨了吗</p>
+    <!-- 添加署名文字 -->
     <script src="popup.js"></script>
   </body>
-  <button id="inqbutton">在eteam</button>
-  <button id="triggerButton">新建行</button>
-  <button id="fillTimeButton">填充时间</button>
 </html>
