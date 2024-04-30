@@ -140,6 +140,21 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   }
 });
 
+function extractLatestTimeOnly(dataArray) {
+  const timePattern = /(\d{2}:\d{2}):\d{2}/g; // 匹配小时和分钟，忽略秒
+  const results = [];
+
+  dataArray.forEach((item) => {
+    let matches = item.match(timePattern); // 获取所有时间匹配项
+    if (matches && matches.length > 0) {
+      // 提取最后一个匹配的时间（假设最后一个为最晚时间）
+      const latestTime = matches[matches.length - 1];
+      results.push(latestTime);
+    }
+  });
+
+  return results;
+}
 /**
  * 触发网页按钮点击的函数。
  * 该函数首先从Chrome本地存储中获取打卡时间（punchTimes），然后根据这些时间进行操作。
@@ -153,16 +168,13 @@ function triggerWebpageButton() {
       // 将打卡时间字符串分割为数组
       let punchTimesArray = data.punchTimes.split("\n");
       let triggerCount = 0;
-
+      let latetimes = extractLatestTimeOnly(punchTimesArray);
       // 遍历打卡时间数组，计算需要触发按钮的次数
-      for (let i = 0; i < punchTimesArray.length; i++) {
-        let timeEntries = punchTimesArray[i].split(/\s+/); // 使用空格分割时间字符串
-        if (timeEntries.length > 3) {
-          let endTime = timeEntries[3];
-          // 检查是否晚于19:00，若是则增加触发计数
-          if (endTime.localeCompare("19:00") > 0) {
-            triggerCount++;
-          }
+      for (let i = 0; i < latetimes.length; i++) {
+        let endTime = latetimes[i];
+        // 检查是否晚于19:00，若是则增加触发计数
+        if (endTime.localeCompare("19:00") > 0) {
+          triggerCount++;
         }
       }
       // 由于循环开始前自动计数1，最后需要减去1以修正触发次数
@@ -211,14 +223,21 @@ async function executeSequentially() {
   });
 
   // 对每个 DOM 元素进行操作，通过 setTimeout 依次延迟执行
-  for (let index = 0; index < cells.length; index++) {
-    setTimeout(() => {
-      // 对每对元素进行点击和焦点切换
-      cells[index * 2].dispatchEvent(event);
+  for (let index = 0; index < cells.length / 2; index++) {
+    //setTimeout(() => {
+    // 对每对元素进行点击和焦点切换
+    console.log(`Processing index: ${index}`);
+    //cells[index * 2].dispatchEvent(event);
+    // cells[index * 2].focus();
+    // // cells[index * 2 + 1].dispatchEvent(event);
+    // cells[index * 2 + 1].focus();
+    if (cells[index * 2] && cells[index * 2].offsetParent !== null) {
       cells[index * 2].focus();
-      cells[index * 2 + 1].dispatchEvent(event);
+    }
+    if (cells[index * 2 + 1] && cells[index * 2 + 1].offsetParent !== null) {
       cells[index * 2 + 1].focus();
-    }, 1000 * index + 1); // 延迟时间逐渐增加，以实现顺序操作
+    }
+    // }, 100 * index + 1); // 延迟时间逐渐增加，以实现顺序操作
   }
 }
 
@@ -310,7 +329,7 @@ function fillTimeCells() {
             }
           });
         });
-      }, 2000); // 等待 2 秒后执行
+      }, 200); // 等待 2 秒后执行
     } catch (error) {
       console.error("An error occurred while processing punch times:", error);
       reject(error); // 在出错的情况下拒绝 Promise
@@ -340,6 +359,7 @@ function processTimeEntry(
   endTime,
   startTime
 ) {
+  console.log(`processTimeEntry index: ${fillIndex}`);
   // 为最早和最晚时间创建点击事件并设置值
   const clickEvent = "click";
   if (cells[fillIndex * 2]) {
