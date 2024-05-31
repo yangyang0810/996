@@ -119,21 +119,7 @@ function calculateEarliestTime(time) {
  * @param {Object} times - 包含日期和对应最早/latest考勤时间的对象。
  * @returns {string} - 格式化后的考勤时间字符串，每个日期及其最早和最晚考勤时间会被格式化为HTML标签显示。
  */
-/**
- * 格式化考勤时间并计算总时长。
- * @param {Object} times - 包含日期和对应最早/latest考勤时间的对象。
- * @returns {string} - 格式化后的考勤时间字符串，每个日期及其最早和最晚考勤时间会被格式化为HTML标签显示，还包括总时长。
- */
-/**
- * 格式化考勤时间并计算有效总时长。
- * @param {Object} times - 包含日期和对应最早/latest考勤时间的对象。
- * @returns {string} - 格式化后的考勤时间字符串，每个日期及其最早和最晚考勤时间会被格式化为HTML标签显示，还包括有效总时长。
- */
-/**
- * 格式化考勤时间并计算有效总时长和加班总时长。
- * @param {Object} times - 包含日期和对应最早/latest考勤时间的对象。
- * @returns {string} - 格式化后的考勤时间字符串，每个日期及其最早和最晚考勤时间会被格式化为HTML标签显示，还包括有效总时长和加班总时长。
- */
+
 function formatPunchTimes(times) {
   let totalEffectiveHours = 0; // 初始化有效总时长为0
   let totalOvertimeHours = 0; // 初始化加班总时长为0
@@ -148,9 +134,15 @@ function formatPunchTimes(times) {
         // 如果最晚时间不在下午6点前，则计算有效时长和加班时长并累加
         if (latestTime >= "18:00") {
           let rawHoursDiff = calculateHours(earliestTime, latestTime); // 原始时长
-          let effectiveHoursDiff = Math.floor(rawHoursDiff * 2) / 2; // 调整到最近的0.5小时
+          let effectiveHoursDiff =
+            rawHoursDiff >= 1 ? Math.floor(rawHoursDiff * 2) / 2 : 0; // 调整到最近的0.5小时，如果不足1小时，记为0
           totalEffectiveHours += effectiveHoursDiff;
           totalOvertimeHours += rawHoursDiff;
+
+          // 如果有效加班时间不足1小时，将整个日期标记为红色
+          if (effectiveHoursDiff === 0) {
+            timeColor = "style='color: red;'";
+          }
         }
 
         return `<span ${timeColor}>最早：${formattedDate} ${earliestTime}    最晚：${formattedDate} ${latestTime}</span>`;
