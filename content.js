@@ -119,21 +119,70 @@ function calculateEarliestTime(time) {
  * @param {Object} times - 包含日期和对应最早/latest考勤时间的对象。
  * @returns {string} - 格式化后的考勤时间字符串，每个日期及其最早和最晚考勤时间会被格式化为HTML标签显示。
  */
+/**
+ * 格式化考勤时间并计算总时长。
+ * @param {Object} times - 包含日期和对应最早/latest考勤时间的对象。
+ * @returns {string} - 格式化后的考勤时间字符串，每个日期及其最早和最晚考勤时间会被格式化为HTML标签显示，还包括总时长。
+ */
+/**
+ * 格式化考勤时间并计算有效总时长。
+ * @param {Object} times - 包含日期和对应最早/latest考勤时间的对象。
+ * @returns {string} - 格式化后的考勤时间字符串，每个日期及其最早和最晚考勤时间会被格式化为HTML标签显示，还包括有效总时长。
+ */
+/**
+ * 格式化考勤时间并计算有效总时长和加班总时长。
+ * @param {Object} times - 包含日期和对应最早/latest考勤时间的对象。
+ * @returns {string} - 格式化后的考勤时间字符串，每个日期及其最早和最晚考勤时间会被格式化为HTML标签显示，还包括有效总时长和加班总时长。
+ */
 function formatPunchTimes(times) {
-  // 将对象的键（日期）转换为一个包含格式化日期和时间的HTML字符串数组
-  return Object.keys(times)
-    .map((date) => {
-      let formattedDate = date.replace(/\//g, "-"); // 将日期中的斜杠替换为破折号
-      let earliestTime = times[date].earliest; // 获取该日期的最早考勤时间
-      let latestTime = times[date].latest; // 获取该日期的最晚考勤时间
-      // 根据最晚考勤时间是否在下午6点前，决定时间颜色是否为红色
-      let timeColor = latestTime < "18:00" ? "style='color: red;'" : "";
-      // 返回包含最早和最晚考勤时间的HTML span标签，如果最晚时间在下午6点前则为红色
-      return `<span ${timeColor}>最早：${formattedDate} ${earliestTime}    最晚：${formattedDate} ${latestTime}</span>`;
-    })
-    .join("\n"); // 将数组中的HTML字符串用换行符连接起来
-}
+  let totalEffectiveHours = 0; // 初始化有效总时长为0
+  let totalOvertimeHours = 0; // 初始化加班总时长为0
+  return (
+    Object.keys(times)
+      .map((date) => {
+        let formattedDate = date.replace(/\//g, "-");
+        let earliestTime = times[date].earliest;
+        let latestTime = times[date].latest;
+        let timeColor = latestTime < "18:00" ? "style='color: red;'" : "";
 
+        // 如果最晚时间不在下午6点前，则计算有效时长和加班时长并累加
+        if (latestTime >= "18:00") {
+          let rawHoursDiff = calculateHours(earliestTime, latestTime); // 原始时长
+          let effectiveHoursDiff = Math.floor(rawHoursDiff * 2) / 2; // 调整到最近的0.5小时
+          totalEffectiveHours += effectiveHoursDiff;
+          totalOvertimeHours += rawHoursDiff;
+        }
+
+        return `<span ${timeColor}>最早：${formattedDate} ${earliestTime}    最晚：${formattedDate} ${latestTime}</span>`;
+      })
+      .join("\n") +
+    `\n有效总时长：${totalEffectiveHours.toFixed(
+      1
+    )} h\n加班总时长：${totalOvertimeHours.toFixed(1)} h`
+  ); // 分别添加有效总时长和加班总时长信息，保留一位小数
+
+  /**
+   * 计算两个时间之间的小时数差
+   * @param {string} startTime - 开始时间（格式：HH:mm）
+   * @param {string} endTime - 结束时间（格式：HH:mm）
+   * @returns {number} - 时间差（小时数）
+   */
+  function calculateHours(startTime, endTime) {
+    const start = convertTimeToDecimal(startTime);
+    const end = convertTimeToDecimal(endTime);
+    return end - start;
+  }
+
+  /**
+   * 将时间（格式：HH:mm）转换为十进制表示（例如：13:30 -> 13.5）
+   * @param {string} time - 时间（格式：HH:mm）
+   * @returns {number} - 十进制表示的时间
+   */
+  function convertTimeToDecimal(time) {
+    const [hours, minutes] = time.split(":").map(Number);
+    return hours + minutes / 60;
+  }
+}
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "triggerWebpageButton") {
     triggerWebpageButton();
