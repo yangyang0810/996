@@ -19,4 +19,4 @@
 右键点击页面，选择“检查”，然后切换到“控制台”标签，查看是否有错误信息。
 您也可以在 JavaScript 代码中使用 console.log 语句来打印出有用的调试信息。
 
-Or u can call Atom to help u figer out this fk word.
+Or u can call Atom to help u figer out this fk world.
