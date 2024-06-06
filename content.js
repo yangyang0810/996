@@ -36,8 +36,17 @@ function extractAndProcessPunchTimes(identifier) {
       let dateTime = element.textContent.trim();
       let [date, time] = dateTime.split(" ");
 
-      // 计算时间的最早形式（例如，将"13:30"转换为"13:30:00"）
+      let formattedDate = date.replace(/\//g, "-");
+
+      let dateParts = formattedDate.split("-");
+      let dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]); // 月份-1是因为JavaScript的月份从0开始
+      let dayOfWeek = dateObj.getDay(); // 0表示周日，6表示周六
       let earliestTime = calculateEarliestTime(time);
+      // 周末特殊处理
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        earliestTime = time;
+      }
+      // 计算时间的最早形式（例如，将"13:30"转换为"13:30:00"）
 
       // 如果当天考勤信息尚未初始化，则以当前时间为最早和最晚时间开始记录
       if (!dailyTimes[date]) {
@@ -67,9 +76,16 @@ function extractAndProcessPunchTimes(identifier) {
       let cleanedRecord = dateTime.replace(/打卡日期\s+|打卡时间\B/g, " ");
       let [date, time] = cleanedRecord.split(" ");
 
-      // 格式化时间，确保时间格式统一
-      let earliestTime = calculateEarliestTime(time);
+      let formattedDate = date.replace(/\//g, "-");
 
+      let dateParts = formattedDate.split("-");
+      let dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]); // 月份-1是因为JavaScript的月份从0开始
+      let dayOfWeek = dateObj.getDay(); // 0表示周日，6表示周六
+      let earliestTime = calculateEarliestTime(time);
+      // 周末特殊处理
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        earliestTime = time;
+      }
       // 如果当天考勤信息尚未初始化，则以当前时间为最早和最晚时间开始记录
       if (!dailyTimes[date]) {
         dailyTimes[date] = { earliest: earliestTime, latest: time };
@@ -127,21 +143,36 @@ function formatPunchTimes(times) {
     Object.keys(times)
       .map((date) => {
         let formattedDate = date.replace(/\//g, "-");
+
+        let dateParts = formattedDate.split("-");
+        let dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]); // 月份-1是因为JavaScript的月份从0开始
+        let dayOfWeek = dateObj.getDay(); // 0表示周日，6表示周六
+
         let earliestTime = times[date].earliest;
         let latestTime = times[date].latest;
-        let timeColor = latestTime < "18:00" ? "style='color: red;'" : "";
-
-        // 如果最晚时间不在下午6点前，则计算有效时长和加班时长并累加
-        if (latestTime >= "18:00") {
-          let rawHoursDiff = calculateHours(earliestTime, latestTime); // 原始时长
+        // 周末特殊处理
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          // 周末加班信息标为绿色，且加班时间即为当天的上下班时间
+          timeColor = "style='color: green;'";
+          earliestTimeForOvertime = earliestTime; // 假设这里要记录最早的加班时间（实际已用最早打卡时间代替）
+          latestTimeForOvertime = latestTime; // 同上，记录最晚加班时间
+          let rawHoursDiff = calculateHours(earliestTime, latestTime);
           let effectiveHoursDiff =
-            rawHoursDiff >= 1 ? Math.floor(rawHoursDiff * 2) / 2 : 0; // 调整到最近的0.5小时，如果不足1小时，记为0
+            rawHoursDiff >= 1 ? Math.floor(rawHoursDiff * 2) / 2 : 0;
           totalEffectiveHours += effectiveHoursDiff;
           totalOvertimeHours += rawHoursDiff;
+        } else {
+          timeColor = latestTime < "18:00" ? "style='color: red;'" : "";
+          if (latestTime >= "18:00") {
+            let rawHoursDiff = calculateHours(earliestTime, latestTime);
+            let effectiveHoursDiff =
+              rawHoursDiff >= 1 ? Math.floor(rawHoursDiff * 2) / 2 : 0;
+            totalEffectiveHours += effectiveHoursDiff;
+            totalOvertimeHours += rawHoursDiff;
 
-          // 如果有效加班时间不足1小时，将整个日期标记为红色
-          if (effectiveHoursDiff === 0) {
-            timeColor = "style='color: red;'";
+            if (effectiveHoursDiff === 0) {
+              timeColor = "style='color: red;'";
+            }
           }
         }
 
