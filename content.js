@@ -137,25 +137,22 @@ function calculateEarliestTime(time) {
  */
 
 function formatPunchTimes(times) {
-  let totalEffectiveHours = 0; // 初始化有效总时长为0
-  let totalOvertimeHours = 0; // 初始化加班总时长为0
+  let totalEffectiveHours = 0;
+  let totalOvertimeHours = 0;
   return (
     Object.keys(times)
       .map((date) => {
         let formattedDate = date.replace(/\//g, "-");
-
         let dateParts = formattedDate.split("-");
-        let dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]); // 月份-1是因为JavaScript的月份从0开始
-        let dayOfWeek = dateObj.getDay(); // 0表示周日，6表示周六
+        let dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        let dayOfWeek = dateObj.getDay();
 
         let earliestTime = times[date].earliest;
         let latestTime = times[date].latest;
-        // 周末特殊处理
+        let timeColor = "";
+
         if (dayOfWeek === 0 || dayOfWeek === 6) {
-          // 周末加班信息标为绿色，且加班时间即为当天的上下班时间
           timeColor = "style='color: green;'";
-          earliestTimeForOvertime = earliestTime; // 假设这里要记录最早的加班时间（实际已用最早打卡时间代替）
-          latestTimeForOvertime = latestTime; // 同上，记录最晚加班时间
           let rawHoursDiff = calculateHours(earliestTime, latestTime);
           let effectiveHoursDiff =
             rawHoursDiff >= 1 ? Math.floor(rawHoursDiff * 2) / 2 : 0;
@@ -169,21 +166,19 @@ function formatPunchTimes(times) {
               rawHoursDiff >= 1 ? Math.floor(rawHoursDiff * 2) / 2 : 0;
             totalEffectiveHours += effectiveHoursDiff;
             totalOvertimeHours += rawHoursDiff;
-
             if (effectiveHoursDiff === 0) {
               timeColor = "style='color: red;'";
             }
           }
         }
 
-        return `<span ${timeColor}>最早：${formattedDate} ${earliestTime}    最晚：${formattedDate} ${latestTime}</span>`;
+        return `<span ${timeColor}>${formattedDate} 最早：${earliestTime} 最晚：${latestTime}</span>`;
       })
       .join("\n") +
     `\n有效总时长：${totalEffectiveHours.toFixed(
       1
     )} h\n加班总时长：${totalOvertimeHours.toFixed(1)} h`
-  ); // 分别添加有效总时长和加班总时长信息，保留一位小数
-
+  );
   /**
    * 计算两个时间之间的小时数差
    * @param {string} startTime - 开始时间（格式：HH:mm）
