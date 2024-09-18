@@ -4,58 +4,90 @@
     <meta charset="UTF-8" />
     <title>打卡时间查看器</title>
     <style>
-      body {
-        width: 300px;
-        padding: 10px;
-        font-family: Arial, sans-serif;
-      }
-      #timeDisplay {
-        margin-top: 10px;
-        white-space: pre-line; /* 保留原格式，比如换行等 */
-      }
-    </style>
-    <style>
-      .colorful-heading {
-        font-family: "Open Sans", Arial, sans-serif;
-        color: #ff6b6b; /* 活泼的橙色 */
-        font-weight: bold; /* 加粗字体 */
-        font-size: 24px; /* 较大的字体大小 */
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); /* 添加文字阴影效果 */
+      :root {
+        --primary-color: #007bff;
+        --secondary-color: #6c757d;
+        --background-color: #f8f9fa;
+        --text-color: #333;
+        --button-hover-color: #0056b3;
       }
 
-      .container {
+      body {
+        width: 300px;
+        padding: 20px;
+        font-family: "Arial", sans-serif;
+        background-color: var(--background-color);
+        color: var(--text-color);
+      }
+
+      h1 {
+        color: var(--primary-color);
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .button-container {
         display: flex;
-        justify-content: left; /* 使内容居中 */
+        flex-direction: column;
+        gap: 10px;
       }
+
       button {
-        margin: 10px; /* 添加一些间距 */
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
       }
+
+      button:hover {
+        background-color: var(--button-hover-color);
+      }
+
+      #timeDisplay {
+        margin-top: 20px;
+        padding: 10px;
+        background-color: white;
+        border: 1px solid var(--secondary-color);
+        border-radius: 5px;
+        white-space: pre-line;
+      }
+
       .signature {
-        position: absolute; /* 绝对定位 */
-        bottom: 10px; /* 距离底部10px */
-        right: 10px; /* 距离右侧10px */
-        font-size: 14px; /* 签名的字体大小 */
-        color: #999; /* 较淡的颜色，显得像署名 */
-        font-style: italic; /* 斜体，增加签名的感觉 */
+        margin-top: 20px;
+        text-align: right;
+        font-style: italic;
+        color: var(--secondary-color);
+        animation: float 3s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0% {
+          transform: translateY(0px);
+          color: var(--secondary-color);
+        }
+        50% {
+          transform: translateY(-5px);
+          color: var(--primary-color);
+        }
+        100% {
+          transform: translateY(0px);
+          color: var(--secondary-color);
+        }
       }
     </style>
   </head>
-
   <body>
-    <h1 class="colorful-heading">牛马小助手</h1>
-    <div class="container">
+    <h1>牛马小助手</h1>
+    <div class="button-container">
       <button id="checkTimeButton">从Ehr查看打卡时间</button>
-    </div>
-    <div class="container">
       <button id="inqbutton">在Eteam查看打卡时间</button>
-    </div>
-    <!-- <div><button id="triggerButton">新建行</button></div> -->
-    <div class="container">
       <button id="fillTimeButton">填写加班数据</button>
     </div>
     <div id="timeDisplay"></div>
     <p class="signature">---本周你拉磨了吗</p>
-    <!-- 添加署名文字 -->
     <script src="popup.js"></script>
   </body>
 </html>
