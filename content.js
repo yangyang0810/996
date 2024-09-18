@@ -102,7 +102,21 @@ function extractAndProcessPunchTimes(identifier) {
     });
   }
   // 格式化每天的考勤时间，并返回结果
-  return formatPunchTimes(dailyTimes);
+  let formattedResult = formatPunchTimes(dailyTimes);
+
+  // 将格式化后的 HTML 和数据分别存储
+  chrome.storage.local.set(
+    {
+      punchTimesHTML: formattedResult.html,
+      punchTimesData: formattedResult.data,
+    },
+    function () {
+      console.log("打卡时间数据已保存");
+    }
+  );
+
+  // 返回 HTML 字符串，保持与原有代码的兼容性
+  return formattedResult.html;
 }
 
 /**
@@ -137,74 +151,102 @@ function calculateEarliestTime(time) {
  */
 
 function formatPunchTimes(times) {
-  let totalEffectiveHours = 0; // 初始化有效总时长为0
-  let totalOvertimeHours = 0; // 初始化加班总时长为0
-  return (
-    Object.keys(times)
-      .map((date) => {
-        let formattedDate = date.replace(/\//g, "-");
+  let totalEffectiveHours = 0;
+  let totalOvertimeHours = 0;
+  let formattedTimes = Object.keys(times).map((date) => {
+    let formattedDate = date.replace(/\//g, "-");
+    let dateParts = formattedDate.split("-");
+    let dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+    let dayOfWeek = dateObj.getDay();
+    let earliestTime = times[date].earliest;
+    let latestTime = times[date].latest;
+    let timeColor = "";
+    let isOvertime = false;
+    let isDisabled = false;
 
-        let dateParts = formattedDate.split("-");
-        let dateObj = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]); // 月份-1是因为JavaScript的月份从0开始
-        let dayOfWeek = dateObj.getDay(); // 0表示周日，6表示周六
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      timeColor = "style='color: green;'";
+      isOvertime = true;
+    } else {
+      if (latestTime < "18:00") {
+        timeColor = "style='color: red;'";
+        isDisabled = true;
+      } else {
+        isOvertime = true;
+      }
+    }
 
-        let earliestTime = times[date].earliest;
-        let latestTime = times[date].latest;
-        // 周末特殊处理
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
-          // 周末加班信息标为绿色，且加班时间即为当天的上下班时间
-          timeColor = "style='color: green;'";
-          earliestTimeForOvertime = earliestTime; // 假设这里要记录最早的加班时间（实际已用最早打卡时间代替）
-          latestTimeForOvertime = latestTime; // 同上，记录最晚加班时间
-          let rawHoursDiff = calculateHours(earliestTime, latestTime);
-          let effectiveHoursDiff =
-            rawHoursDiff >= 1 ? Math.floor(rawHoursDiff * 2) / 2 : 0;
-          totalEffectiveHours += effectiveHoursDiff;
-          totalOvertimeHours += rawHoursDiff;
-        } else {
-          timeColor = latestTime < "18:00" ? "style='color: red;'" : "";
-          if (latestTime >= "18:00") {
-            let rawHoursDiff = calculateHours(earliestTime, latestTime);
-            let effectiveHoursDiff =
-              rawHoursDiff >= 1 ? Math.floor(rawHoursDiff * 2) / 2 : 0;
-            totalEffectiveHours += effectiveHoursDiff;
-            totalOvertimeHours += rawHoursDiff;
+    let rawHoursDiff = calculateHours(earliestTime, latestTime);
+    let effectiveHoursDiff = isOvertime
+      ? rawHoursDiff >= 1
+        ? Math.floor(rawHoursDiff * 2) / 2
+        : 0
+      : 0;
 
-            if (effectiveHoursDiff === 0) {
-              timeColor = "style='color: red;'";
-            }
-          }
-        }
+    totalEffectiveHours += effectiveHoursDiff;
+    totalOvertimeHours += isOvertime ? rawHoursDiff : 0;
 
-        return `<span ${timeColor}>最早：${formattedDate} ${earliestTime}    最晚：${formattedDate} ${latestTime}</span>`;
-      })
-      .join("\n") +
-    `\n有效总时长：${totalEffectiveHours.toFixed(
-      1
-    )} h\n加班总时长：${totalOvertimeHours.toFixed(1)} h`
-  ); // 分别添加有效总时长和加班总时长信息，保留一位小数
+    return {
+      date: formattedDate,
+      earliest: earliestTime,
+      latest: latestTime,
+      timeColor: timeColor,
+      isOvertime: isOvertime,
+      effectiveHours: effectiveHoursDiff,
+      overtimeHours: isOvertime ? rawHoursDiff : 0,
+    };
+  });
 
-  /**
-   * 计算两个时间之间的小时数差
-   * @param {string} startTime - 开始时间（格式：HH:mm）
-   * @param {string} endTime - 结束时间（格式：HH:mm）
-   * @returns {number} - 时间差（小时数）
-   */
-  function calculateHours(startTime, endTime) {
-    const start = convertTimeToDecimal(startTime);
-    const end = convertTimeToDecimal(endTime);
-    return end - start;
-  }
+  let initialHTML = formattedTimes
+    .map(
+      (time, index) =>
+        `<div class="punch-time-row ${time.isDisabled ? "disabled-row" : ""}">
+      <input type="checkbox" class="overtime-checkbox" id="checkbox-${index}" 
+             ${time.isOvertime ? "checked" : ""} 
+             ${time.isDisabled ? "disabled" : ""} 
+             data-index="${index}">
+      <span ${time.timeColor}>最早：${time.date} ${time.earliest} 最晚：${
+          time.date
+        } ${time.latest}</span>
+    </div>`
+    )
+    .join("");
 
-  /**
-   * 将时间（格式：HH:mm）转换为十进制表示（例如：13:30 -> 13.5）
-   * @param {string} time - 时间（格式：HH:mm）
-   * @returns {number} - 十进制表示的时间
-   */
-  function convertTimeToDecimal(time) {
-    const [hours, minutes] = time.split(":").map(Number);
-    return hours + minutes / 60;
-  }
+  initialHTML += `<div class="total-hours">有效总时长：<span id="effective-hours">${totalEffectiveHours.toFixed(
+    1
+  )}</span> h</div>`;
+  initialHTML += `<div class="total-hours">加班总时长：<span id="overtime-hours">${totalOvertimeHours.toFixed(
+    1
+  )}</span> h</div>`;
+
+  return {
+    html: initialHTML,
+    data: formattedTimes,
+    totalEffectiveHours: totalEffectiveHours,
+    totalOvertimeHours: totalOvertimeHours,
+  };
+} // 分别添加有效总时长和加班总时长信息，保留一位小数
+
+/**
+ * 计算两个时间之间的小时数差
+ * @param {string} startTime - 开始时间（格式：HH:mm）
+ * @param {string} endTime - 结束时间（格式：HH:mm）
+ * @returns {number} - 时间差（小时数）
+ */
+function calculateHours(startTime, endTime) {
+  const start = convertTimeToDecimal(startTime);
+  const end = convertTimeToDecimal(endTime);
+  return end - start;
+}
+
+/**
+ * 将时间（格式：HH:mm）转换为十进制表示（例如：13:30 -> 13.5）
+ * @param {string} time - 时间（格式：HH:mm）
+ * @returns {number} - 十进制表示的时间
+ */
+function convertTimeToDecimal(time) {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours + minutes / 60;
 }
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
   if (request.action === "triggerWebpageButton") {
@@ -347,59 +389,42 @@ function fillTimeCells() {
 
       // 设置一个 2 秒的延时，然后继续执行填充时间的逻辑
       setTimeout(() => {
-        chrome.storage.local.get("punchTimes", function (data) {
-          if (!data.punchTimes) {
+        chrome.storage.local.get("punchTimesData", function (data) {
+          if (!data.punchTimesData) {
             console.log("No punch times data available.");
             resolve(); // 如果没有数据，直接解决 Promise
             return;
           }
 
-          const punchTimesArray = data.punchTimes.split("\n");
           const cells = document.querySelectorAll(
             ".ui-input.ui-date-time-picker-rangeWrap-input"
           );
           let fillIndex = 0; // 用于跟踪实际填充的序号
 
-          punchTimesArray.forEach((timeEntry, index, array) => {
-            // Split the string into two parts - earliest and latest
-            let [earliest, latest] = timeEntry.split("最晚：");
-
-            // Remove the '最早：' part from the earliest string
-            earliest = earliest.replace("最早：", "").trim();
-
-            // Split the earliest and latest parts to get date and time separately
-            let [startDate, startTime] = earliest.split(" ");
-            let [endDate, fullEndTime] = latest.split(" ");
-            let [endHours, endMinutes] = fullEndTime.split(":");
-
-            // 只保留小时和分钟
-            let endTime = `${endHours}:${endMinutes}`;
-
-            // 转换小时为数字并比较
-            if (parseInt(endHours) < 19) {
-              console.log(
-                `Skipping entry with end time before 19:00: ${timeEntry}`
-              );
+          data.punchTimesData.forEach((timeEntry, index) => {
+            if (!timeEntry.isOvertime) {
+              console.log(`Skipping entry without overtime: ${timeEntry.date}`);
               return; // 跳过本次循环
             }
 
-            let times = timeEntry.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/g) || [];
-            let matches = timeEntry.match(/\d{4}-\d{2}-\d{2}/g);
-            if (times.length === 2) {
-              processTimeEntry(
-                cells,
-                fillIndex,
-                times,
-                matches,
-                endTime,
-                startTime
-              );
-            }
+            let startTime = timeEntry.earliest;
+            let endTime = timeEntry.latest;
+
+            processTimeEntry(
+              cells,
+              fillIndex,
+              [
+                timeEntry.date + " " + startTime,
+                timeEntry.date + " " + endTime,
+              ],
+              [timeEntry.date, timeEntry.date],
+              endTime,
+              startTime
+            );
             fillIndex++;
-            if (index == array.length - 1) {
-              resolve();
-            }
           });
+
+          resolve();
         });
       }, 200); // 等待 2 秒后执行
     } catch (error) {
