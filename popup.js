@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", function () {
           handleResponse
         );
       });
-    }
+    });
   }
 
   handleButtonClick("checkTimeButton", "getPunchTimes");
@@ -58,7 +58,6 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     });
   }
-
 
   if (fillTimeButton) {
     fillTimeButton.addEventListener("click", function () {
