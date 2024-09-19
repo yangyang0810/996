@@ -288,7 +288,7 @@ function triggerWebpageButton() {
       console.log(`Number of selected punch times: ${triggerCount}`);
 
       // 根据选中的打卡时间数量触发按钮点击
-      for (let i = 0; i < triggerCount; i++) {
+      for (let i = 0; i < triggerCount - 1; i++) {
         let button = document.querySelector(
           ".weapp-form-detail-table__action-btn"
         );
