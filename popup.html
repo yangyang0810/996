@@ -13,8 +13,8 @@
       }
 
       body {
-        width: 300px;
-        padding: 20px;
+        width: 350px; /* 稍微增加宽度 */
+        padding: 10px;
         font-family: "Arial", sans-serif;
         background-color: var(--background-color);
         color: var(--text-color);
@@ -46,15 +46,6 @@
         background-color: var(--button-hover-color);
       }
 
-      #timeDisplay {
-        margin-top: 20px;
-        padding: 10px;
-        background-color: white;
-        border: 1px solid var(--secondary-color);
-        border-radius: 5px;
-        white-space: pre-line;
-      }
-
       .signature {
         margin-top: 20px;
         text-align: right;
@@ -76,6 +67,62 @@
           transform: translateY(0px);
           color: var(--secondary-color);
         }
+      }
+
+      #timeDisplay {
+        margin-top: 10px;
+        padding: 5px;
+        background-color: white;
+        border: 1px solid var(--secondary-color);
+        border-radius: 5px;
+        max-height: 300px;
+        overflow-y: auto;
+        font-size: 11px; /* 进一步减小字体大小 */
+      }
+
+      #timeDisplay span {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-bottom: 2px;
+        padding: 2px 0;
+        border-bottom: 1px solid #eee;
+      }
+
+      #timeDisplay span:last-of-type {
+        border-bottom: none;
+      }
+
+      .total-hours {
+        margin-top: 5px;
+        font-weight: bold;
+        border-top: 1px solid var(--secondary-color);
+        padding-top: 3px;
+      }
+
+      .punch-time-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+      }
+
+      .overtime-checkbox {
+        margin-right: 5px;
+      }
+
+      #timeDisplay span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex-grow: 1;
+      }
+      .disabled-row {
+        opacity: 0.5;
+      }
+
+      .disabled-row input[type="checkbox"] {
+        pointer-events: none;
       }
     </style>
   </head>
