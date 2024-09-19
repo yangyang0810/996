@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     chrome.storage.local.get("punchTimesData", function (data) {
       if (data.punchTimesData) {
-        data.punchTimesData[index].isOvertime = checkbox.checked;
+        data.punchTimesData[index].isChecked = checkbox.checked;
         chrome.storage.local.set(
           { punchTimesData: data.punchTimesData },
           function () {
@@ -85,13 +85,11 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   }
-
   function updateTotalHours(punchTimesData) {
     let totalEffective = 0;
     let totalOvertime = 0;
     punchTimesData.forEach((time, index) => {
-      const checkbox = document.getElementById(`checkbox-${index}`);
-      if (checkbox && checkbox.checked) {
+      if (time.isChecked) {
         totalEffective += time.effectiveHours;
         totalOvertime += time.overtimeHours;
       }
@@ -101,7 +99,6 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("overtime-hours").textContent =
       totalOvertime.toFixed(1);
   }
-
   function addCheckboxListeners() {
     const checkboxes = document.querySelectorAll(".overtime-checkbox");
     checkboxes.forEach((checkbox) => {

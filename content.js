@@ -192,6 +192,7 @@ function formatPunchTimes(times) {
       latest: latestTime,
       timeColor: timeColor,
       isOvertime: isOvertime,
+      isChecked: isOvertime, // 默认选中加班时间
       effectiveHours: effectiveHoursDiff,
       overtimeHours: isOvertime ? rawHoursDiff : 0,
     };
@@ -276,42 +277,32 @@ function extractLatestTimeOnly(dataArray) {
  * 该函数不接受参数，并且没有返回值。
  */
 function triggerWebpageButton() {
-  // 从Chrome本地存储获取打卡时间
-  chrome.storage.local.get("punchTimes", function (data) {
-    if (data.punchTimes) {
-      // 将打卡时间字符串分割为数组
-      let punchTimesArray = data.punchTimes.split("\n");
-      let triggerCount = 0;
-      let latetimes = extractLatestTimeOnly(punchTimesArray);
-      // 遍历打卡时间数组，计算需要触发按钮的次数
-      for (let i = 0; i < latetimes.length; i++) {
-        let endTime = latetimes[i];
-        // 检查是否晚于19:00，若是则增加触发计数
-        if (endTime.localeCompare("19:00") > 0) {
-          triggerCount++;
-        }
-      }
-      // 由于循环开始前自动计数1，最后需要减去1以修正触发次数
-      --triggerCount;
-      // 根据计数触发按钮点击
+  // 从Chrome本地存储获取打卡时间数据
+  chrome.storage.local.get("punchTimesData", function (data) {
+    if (data.punchTimesData && Array.isArray(data.punchTimesData)) {
+      // 计算被选中的打卡时间数量
+      let triggerCount = data.punchTimesData.filter(
+        (entry) => entry.isChecked
+      ).length;
+
+      console.log(`Number of selected punch times: ${triggerCount}`);
+
+      // 根据选中的打卡时间数量触发按钮点击
       for (let i = 0; i < triggerCount; i++) {
         let button = document.querySelector(
           ".weapp-form-detail-table__action-btn"
         );
         if (button) {
+          console.log(`Clicking button for the ${i + 1}th time`);
           button.click();
+        } else {
+          console.log("Button not found");
         }
       }
     } else {
-      // 未找到打卡时间，默认触发三次按钮点击
-      for (let i = 0; i < 3; i++) {
-        let button = document.querySelector(
-          ".weapp-form-detail-table__action-btn"
-        );
-        if (button) {
-          button.click();
-        }
-      }
+      console.log(
+        "No punch times data available or data is not in the expected format"
+      );
     }
   });
 }
@@ -387,7 +378,7 @@ function fillTimeCells() {
     try {
       triggerWebpageButton(); // 先触发 triggerWebpageButton 函数
 
-      // 设置一个 2 秒的延时，然后继续执行填充时间的逻辑
+      // 设置一个短暂的延时，然后继续执行填充时间的逻辑
       setTimeout(() => {
         chrome.storage.local.get("punchTimesData", function (data) {
           if (!data.punchTimesData) {
@@ -402,9 +393,9 @@ function fillTimeCells() {
           let fillIndex = 0; // 用于跟踪实际填充的序号
 
           data.punchTimesData.forEach((timeEntry, index) => {
-            if (!timeEntry.isOvertime) {
-              console.log(`Skipping entry without overtime: ${timeEntry.date}`);
-              return; // 跳过本次循环
+            if (!timeEntry.isOvertime || !timeEntry.isChecked) {
+              console.log(`Skipping entry: ${timeEntry.date}`);
+              return; // 跳过未选中或非加班的条目
             }
 
             let startTime = timeEntry.earliest;
@@ -426,10 +417,10 @@ function fillTimeCells() {
 
           resolve();
         });
-      }, 200); // 等待 2 秒后执行
+      }, 200);
     } catch (error) {
       console.error("An error occurred while processing punch times:", error);
-      reject(error); // 在出错的情况下拒绝 Promise
+      reject(error);
     }
   });
 }
